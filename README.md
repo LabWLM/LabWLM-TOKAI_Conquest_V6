@@ -1,6 +1,6 @@
 # TOKAI Conquest V6
 
-TOKAI Conquest V6は、Battlefield Portal向けCustom ConquestのNo-Commander本線です。通常は安定版かつLatestの **2.4.0** を使用してください。**2.5.0** は、標準Objective HUDを暫定採用したプレリリースです。
+TOKAI Conquest V6は、Battlefield Portal向けのカスタムコンクエストです。通常は安定版かつLatestの **2.4.0** を使用してください。**2.5.0** は、標準Objective HUDを暫定採用したプレリリースです。
 
 - [日本語の詳しい案内](README-JP.md)
 - [安定版2.4.0をダウンロード](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/download/v2.4.0/tokai-conquest-2.4.0-release.zip)
@@ -22,14 +22,11 @@ TOKAI Conquest V6は、Battlefield Portal向けCustom ConquestのNo-Commander本
 
 ## 標準からの主な変更
 
-| 機能 | 標準を基準にした扱い | TOKAIでの変更または維持 |
+| 機能 | 標準との関係 | TOKAI Conquestでの動作 |
 | --- | --- | --- |
-| マッチ開始時のチーム | 人間プレイヤーの開始時チームを対象にします。 | 人間プレイヤーをランダムかつ均等にシャッフルします。 |
-| マッチ開始後参加 | Portalが設定した初期チームと人間プレイヤー人数差を基準にします。 | 人数差が0～1人なら初期チームの反対側へ、2人以上なら人数の少ないチームへ一度だけ配属します。 |
-| 通常死亡時のチケット | 通常死亡に伴うチケット処理を対象にします。 | 通常死亡1回につき、チケットを合計で正確に1だけ減らします。 |
-| 昼夜とNVG | TOKAIが追加するラウンド制御と、出撃・再出撃の対象場面を扱います。 | 夜戦発生率15％、同じスクリプト動作中の連続夜戦防止、夜戦時の初回出撃・マッチ開始後参加・再出撃でのNVG付与を行います。 |
-| 偵察ドローン | 標準の偵察ドローン機能を使用します。 | 所有者と使用数に関する制限を完全に撤廃します。 |
-| 既存機能 | No-Commander、試合時間、チケット表示、終了画面、手動チーム切替、拠点占領、弾薬補給、戦闘エリア外、音声案内を対象にします。 | 2.4.0でこれらの既存機能を維持します。 |
+| ゲーム開始時のチーム分け | TOKAI独自のチーム分けを行います。 | 人間プレイヤーをランダムかつ均等に振り分けます。 |
+| 途中参加時のチーム分け | Portalが最初に割り当てたチームと、現在の人間プレイヤー数を確認します。 | 人数差が0～1人なら最初に割り当てられたチームの反対側へ、2人以上なら人数の少ないチームへ一度だけ振り分けます。 |
+| 昼夜とNVG | 標準のラウンド進行に、TOKAI独自の昼夜抽選とNVG付与を追加します。 | 各ラウンドで夜戦を15％の確率で選択し、同じスクリプトが動作している間は夜戦を連続させません。夜戦時は、初回出撃、マッチ開始後参加、再出撃の際にNVGを付与します。 |
 | AI | Custom AIによる置換を行いません。 | 独自AI機能を使用しません。 |
 | MAP | 公開パッケージで対応ファイルを配布します。 | 現行7マップのGodot編集用とPortalアップロード用を各1件、合計14ファイル収録します。 |
 | 2.5.0の拠点表示 | SDK 1.4.2の標準Objective HUDを使用します。 | 標準Objective HUDを有効化し、重複する従来表示だけを除去します。それ以外は2.4.0を維持します。 |
@@ -65,7 +62,7 @@ Capstoneの拠点A～FとIberianは実機試験に合格しています。Abbasi
 
 ## English summary
 
-TOKAI Conquest V6 is the No-Commander mainline for Battlefield Portal Custom Conquest. It uses no Custom AI.
+TOKAI Conquest V6 is a custom Conquest experience for Battlefield Portal. It uses no Custom AI.
 
 - Use [v2.4.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/latest) for the stable and Latest release.
 - Use [v2.5.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/tag/v2.5.0) only to evaluate the provisional native Objective HUD. It is a non-Latest prerelease; its only objective-display change is enabling the native HUD and removing the duplicate legacy custom visuals. It includes no score-system change.
@@ -73,7 +70,7 @@ TOKAI Conquest V6 is the No-Commander mainline for Battlefield Portal Custom Con
 - Both versions include Abbasid 2.2.3, Aftermath 1.2, Capstone 1.5, Eastwood 1.2, Iberian 1.2, Metro 1.0, and Plaza 1.0.
 - For a historical map-only option, use [Seven Map Pack v1.0.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/tag/map-pack-v1.0.0) or its [direct ZIP](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/download/map-pack-v1.0.0/tokai-conquest-seven-map-pack-v1.0.0.zip). It has no TypeScript or Strings JSON and requires the matching v2.3.0 core pair. Do not mix it with the current set: it contains Aftermath 1.1 and Capstone 1.2.2 instead of Aftermath 1.2 and Capstone 1.5.
 - Import one matching `.spatial.json`, then the same-version TypeScript and Strings JSON files. Save before hosting. Do not upload `.tscn` files to Portal.
-- Relative to the standard Portal/CustomTwoTeams basis, TOKAI adds an even randomized human-team shuffle, one-time population-aware post-start assignment, exactly one total ticket removed per ordinary death, a 15% night chance with no consecutive night rounds in the same script runtime, and NVG on initial night deployment, post-start join, and redeployment. Recon Drone owner/count restrictions are fully removed. Existing No-Commander, Timer, Ticket UI, End Screen, manual Team Switch, Capture, Ammo, OOB, and VO functions are maintained. No Custom AI is used. The current package contains seven MAP pairs (14 files). v2.5.0 changes only the objective display to the native Objective HUD and otherwise retains 2.4.0 behavior.
+- At game start, TOKAI assigns human players randomly and evenly. For a player joining after start, it checks current human counts once: at a difference of 0–1, it assigns the player opposite the initially assigned team; at 2 or more, it uses the smaller team. It removes exactly one total ticket per ordinary death, uses a 15% night chance with no consecutive night rounds in the same script runtime, and provides NVG on initial night deployment, post-start join, and redeployment. Recon Drone owner/count restrictions are fully removed. No Custom AI is used. The current package contains seven MAP pairs (14 files). v2.5.0 changes only the objective display to the native Objective HUD and otherwise retains 2.4.0 behavior.
 - Score-system changes are frozen. No custom substitute has been added for score integration that the SDK does not support.
 - Use the manually uploaded Release ZIP. GitHub-generated Source code archives are documentation-only developer snapshots, not Portal installation packages.
 
