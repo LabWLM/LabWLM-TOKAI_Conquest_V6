@@ -72,6 +72,22 @@ TOKAI Conquest V6は、Battlefield Portal向けのカスタムコンクエスト
 
 詳細は[2.5.0 Release notes](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/tag/v2.5.0)を確認してください。
 
+## ソースコード履歴 / Source history
+
+[`source-history`ブランチ](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/tree/source-history)は、TypeScriptとStrings JSONを含む5件の公開Releaseの正本ペアから、2026年8月26日に再構成した公開用の直線履歴です。旧非公開リポジトリの開発履歴ではありません。各バージョンの組は、対応する公開Releaseファイルと内容が一切変わりません。`main`ブランチは引き続き文書専用です。
+
+導入にはsource-historyブランチのファイルではなく、対応するReleaseの手動ZIPを使用してください。元のファイル名と公開情報は累積版の[`VERSIONS.md`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/blob/source-history/VERSIONS.md)で確認できます。[source-historyのcommit一覧](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commits/source-history)も参照できます。
+
+| 公開Releaseのスナップショット | 固定commit |
+| --- | --- |
+| v2.0 | [`1e927b0`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/1e927b0097c9ea1cd257f44529e0a71c6a52a02f) |
+| v2.2.2 | [`d718498`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/d7184988ddcdd6f9933cf0bd33e2837d23b55646) |
+| v2.3.0 | [`f97f8d0`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/f97f8d05bdc730a6a30003838fbb7da5eab6141f) |
+| v2.4.0 | [`7ceb8ea`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/7ceb8ea83c0238fdd4b748890327727d5bb2fa96) |
+| v2.5.0 | [`64e4d3f`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/64e4d3f0400d9661db7d02e77324c75ca0acdc85) |
+
+隣接する公開スナップショットの比較: [v2.0 → v2.2.2](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/1e927b0097c9ea1cd257f44529e0a71c6a52a02f...d7184988ddcdd6f9933cf0bd33e2837d23b55646) · [v2.2.2 → v2.3.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/d7184988ddcdd6f9933cf0bd33e2837d23b55646...f97f8d05bdc730a6a30003838fbb7da5eab6141f) · [v2.3.0 → v2.4.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/f97f8d05bdc730a6a30003838fbb7da5eab6141f...7ceb8ea83c0238fdd4b748890327727d5bb2fa96) · [v2.4.0 → v2.5.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/7ceb8ea83c0238fdd4b748890327727d5bb2fa96...64e4d3f0400d9661db7d02e77324c75ca0acdc85)
+
 ## ダウンロード時の注意
 
 通常利用者は、各ReleaseのAssets欄にある手動アップロードZIPを使用してください。

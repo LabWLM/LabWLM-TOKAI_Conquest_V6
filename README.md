@@ -63,6 +63,22 @@ Capstoneの拠点A～FとIberianは実機試験に合格しています。Abbasi
 
 通常利用者は、各ReleaseのAssets欄にある手動アップロードZIPを使用してください。GitHub自動生成の **Source code (zip)** と **Source code (tar.gz)** は開発者向けの文書リポジトリ全体であり、Portal導入用ではありません。
 
+## ソースコード履歴 / Source history
+
+The [`source-history` branch](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/tree/source-history) is a public linear history reconstructed on August 26, 2026 from the authoritative TypeScript and Strings JSON pairs in the five public Releases that contain such a pair. It is not the former private repository's development history. Each version's pair is byte-exact to its published Release files. The `main` branch remains documentation-only.
+
+Use the manual ZIP from the corresponding Release for installation; do not install from the source-history branch. See the cumulative original filenames and publication metadata in [`VERSIONS.md`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/blob/source-history/VERSIONS.md), or browse the [source-history commits](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commits/source-history).
+
+| Public Release snapshot | Fixed commit |
+| --- | --- |
+| v2.0 | [`1e927b0`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/1e927b0097c9ea1cd257f44529e0a71c6a52a02f) |
+| v2.2.2 | [`d718498`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/d7184988ddcdd6f9933cf0bd33e2837d23b55646) |
+| v2.3.0 | [`f97f8d0`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/f97f8d05bdc730a6a30003838fbb7da5eab6141f) |
+| v2.4.0 | [`7ceb8ea`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/7ceb8ea83c0238fdd4b748890327727d5bb2fa96) |
+| v2.5.0 | [`64e4d3f`](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/commit/64e4d3f0400d9661db7d02e77324c75ca0acdc85) |
+
+Adjacent public snapshots: [v2.0 → v2.2.2](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/1e927b0097c9ea1cd257f44529e0a71c6a52a02f...d7184988ddcdd6f9933cf0bd33e2837d23b55646) · [v2.2.2 → v2.3.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/d7184988ddcdd6f9933cf0bd33e2837d23b55646...f97f8d05bdc730a6a30003838fbb7da5eab6141f) · [v2.3.0 → v2.4.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/f97f8d05bdc730a6a30003838fbb7da5eab6141f...7ceb8ea83c0238fdd4b748890327727d5bb2fa96) · [v2.4.0 → v2.5.0](https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/compare/7ceb8ea83c0238fdd4b748890327727d5bb2fa96...64e4d3f0400d9661db7d02e77324c75ca0acdc85)
+
 ## English summary
 
 TOKAI Conquest V6 is a custom Conquest experience for Battlefield Portal.
