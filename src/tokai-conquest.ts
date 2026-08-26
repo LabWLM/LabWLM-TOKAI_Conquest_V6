@@ -1,6 +1,6 @@
 import * as modlib from "modlib";
 
-const TOKAI_CONQUEST_BUILD_ID = "TOKAI CONQUEST 2.2.2 V12 CORE RELEASE";
+const TOKAI_CONQUEST_BUILD_ID = "TOKAI CONQUEST 2.3.0 TEAM SHUFFLE LATE JOIN INVERSION RELEASE";
 const V12_TIMER_UI_ENABLED = true;
 const V12_RANDOM_DAY_NIGHT_ENABLED = true;
 const V12_PERCENTAGE_NIGHT_CHANCE = 25;
@@ -243,6 +243,26 @@ const ammoResupplyLastUsedByPlayerId = new Map<number, number>();
 const ammoResupplyNoticeTokenByPlayerId = new Map<number, number>();
 const spawnedCaptureSoundObjects: mod.Object[] = [];
 
+type TeamAssignmentPhase = "awaiting-game-start" | "initial" | "late";
+
+type ObservedPlayerJoin = {
+    player: mod.Player;
+    observedPhase: TeamAssignmentPhase;
+    portalTeamId: number;
+    targetRoundGeneration: number;
+};
+
+// Per-round team assignment state. Joins observed before OnGameModeStarted remain queued.
+let teamAssignmentPhase: TeamAssignmentPhase = "awaiting-game-start";
+let currentRoundGeneration = 0;
+let initialTeam1Count = 0;
+let initialTeam2Count = 0;
+const observedPlayerJoins = new Map<number, ObservedPlayerJoin>();
+const initialTeamAssignedPlayerIds = new Set<number>();
+const initialAssignedTeamIdByPlayerId = new Map<number, number>();
+const lateJoinInvertedPlayerIds = new Set<number>();
+const completedPlayerJoinIds = new Set<number>();
+
 function defaultPlayerState(): PlayerState {
     return {
         score: 0,
@@ -293,6 +313,223 @@ function otherTeamId(id: number): number {
 
 function otherTeam(teamValue: mod.Team): mod.Team {
     return team(otherTeamId(teamId(teamValue)));
+}
+
+function playerAiState(player: mod.Player): boolean | undefined {
+    if (!mod.IsPlayerValid(player)) return undefined;
+    try {
+        return mod.GetSoldierState(player, mod.SoldierStateBool.IsAISoldier);
+    } catch (_error) {
+        void _error;
+        return undefined;
+    }
+}
+
+function randomIndex(maxInclusive: number): number {
+    const unitValue = mod.RandomReal(0, 1);
+    return Math.min(maxInclusive, Math.floor(unitValue * (maxInclusive + 1)));
+}
+
+function applyAutomaticTeamAssignment(player: mod.Player, targetTeamId: number): boolean {
+    if (!mod.IsPlayerValid(player)) return false;
+    if (targetTeamId !== TEAM_1_ID && targetTeamId !== TEAM_2_ID) return false;
+    try {
+        const currentTeamId = teamId(mod.GetTeam(player));
+        if (currentTeamId === targetTeamId) return true;
+        const targetTeam = mod.GetTeam(targetTeamId);
+        if (teamId(targetTeam) !== targetTeamId) return false;
+        mod.SetTeam(player, targetTeam);
+        return true;
+    } catch (_error) {
+        void _error;
+        return false;
+    }
+}
+
+function planInitialAssignment(player: mod.Player, targetTeamId: number): void {
+    const playerId = mod.GetObjId(player);
+    if (initialAssignedTeamIdByPlayerId.has(playerId)) return;
+    initialAssignedTeamIdByPlayerId.set(playerId, targetTeamId);
+    if (targetTeamId === TEAM_1_ID) initialTeam1Count += 1;
+    if (targetTeamId === TEAM_2_ID) initialTeam2Count += 1;
+}
+
+function applyPlannedInitialAssignment(player: mod.Player): boolean {
+    const playerId = mod.GetObjId(player);
+    if (initialTeamAssignedPlayerIds.has(playerId)) return true;
+    const targetTeamId = initialAssignedTeamIdByPlayerId.get(playerId);
+    if (targetTeamId === undefined || !applyAutomaticTeamAssignment(player, targetTeamId)) return false;
+    initialTeamAssignedPlayerIds.add(playerId);
+    return true;
+}
+
+function balancedInitialTeamId(): number {
+    if (initialTeam1Count < initialTeam2Count) return TEAM_1_ID;
+    if (initialTeam2Count < initialTeam1Count) return TEAM_2_ID;
+    return mod.RandomReal(0, 1) < 0.5 ? TEAM_1_ID : TEAM_2_ID;
+}
+
+function assignInitialPlayer(player: mod.Player): void {
+    planInitialAssignment(player, balancedInitialTeamId());
+    applyPlannedInitialAssignment(player);
+}
+
+function invertLateJoinPlayer(observed: ObservedPlayerJoin): boolean {
+    const player = observed.player;
+    const playerId = mod.GetObjId(player);
+    if (lateJoinInvertedPlayerIds.has(playerId)) return true;
+    if (!mod.IsPlayerValid(player)) return false;
+    if (observed.portalTeamId !== TEAM_1_ID && observed.portalTeamId !== TEAM_2_ID) {
+        const currentTeamId = teamId(mod.GetTeam(player));
+        if (currentTeamId !== TEAM_1_ID && currentTeamId !== TEAM_2_ID) return false;
+        observed.portalTeamId = currentTeamId;
+    }
+    const portalTeamId = observed.portalTeamId;
+    if (portalTeamId !== TEAM_1_ID && portalTeamId !== TEAM_2_ID) return false;
+    if (!applyAutomaticTeamAssignment(player, otherTeamId(portalTeamId))) return false;
+    lateJoinInvertedPlayerIds.add(playerId);
+    return true;
+}
+
+function completePlayerJoin(player: mod.Player): void {
+    const playerId = mod.GetObjId(player);
+    if (completedPlayerJoinIds.has(playerId)) return;
+    completedPlayerJoinIds.add(playerId);
+    initializePlayerState(player);
+    if (!isAiSoldier(player)) enableAmmoResupplyVFX();
+    createPlayerHud(player);
+    updatePlayerScoreboard(player);
+    if (state.gameOngoing) updateAllHud();
+}
+
+function processObservedPlayerJoin(playerId: number): void {
+    if (teamAssignmentPhase === "awaiting-game-start") return;
+    const observed = observedPlayerJoins.get(playerId);
+    if (observed === undefined || observed.targetRoundGeneration !== currentRoundGeneration || completedPlayerJoinIds.has(playerId)) return;
+    const player = observed.player;
+    const aiState = playerAiState(player);
+    if (aiState === undefined) return;
+
+    if (!aiState) {
+        if (initialTeamAssignedPlayerIds.has(playerId)) {
+            // The OnGameModeStarted scan assigned this player before its join pipeline ran.
+        } else if (observed.observedPhase !== "late") {
+            assignInitialPlayer(player);
+        } else if (observed.observedPhase === "late") {
+            if (!invertLateJoinPlayer(observed)) return;
+        }
+    }
+
+    completePlayerJoin(player);
+}
+
+function processOneObservedPlayerJoin(): void {
+    if (teamAssignmentPhase === "awaiting-game-start") return;
+    for (const playerId of observedPlayerJoins.keys()) {
+        if (completedPlayerJoinIds.has(playerId)) continue;
+        processObservedPlayerJoin(playerId);
+        if (!completedPlayerJoinIds.has(playerId)) {
+            const observed = observedPlayerJoins.get(playerId);
+            if (observed !== undefined) {
+                observedPlayerJoins.delete(playerId);
+                observedPlayerJoins.set(playerId, observed);
+            }
+        }
+        return;
+    }
+}
+
+function shuffleInitialHumanPlayers(allPlayers: PlayerCollection): void {
+    const humanPlayers: mod.Player[] = [];
+    const collectedPlayerIds = new Set<number>();
+
+    for (let i = 0; i < countPlayers(allPlayers); i += 1) {
+        const player = playerValue(allPlayers, i);
+        if (playerAiState(player) !== false) continue;
+        const playerId = mod.GetObjId(player);
+        if (collectedPlayerIds.has(playerId)) continue;
+        collectedPlayerIds.add(playerId);
+        humanPlayers.push(player);
+    }
+
+    for (let i = humanPlayers.length - 1; i > 0; i -= 1) {
+        const swapIndex = randomIndex(i);
+        const current = humanPlayers[i];
+        humanPlayers[i] = humanPlayers[swapIndex];
+        humanPlayers[swapIndex] = current;
+    }
+
+    const firstTeamId = mod.RandomReal(0, 1) < 0.5 ? TEAM_1_ID : TEAM_2_ID;
+    for (let i = 0; i < humanPlayers.length; i += 1) {
+        planInitialAssignment(humanPlayers[i], i % 2 === 0 ? firstTeamId : otherTeamId(firstTeamId));
+    }
+}
+
+function beginRoundTeamAssignment(): void {
+    currentRoundGeneration += 1;
+    initialTeamAssignedPlayerIds.clear();
+    initialAssignedTeamIdByPlayerId.clear();
+    lateJoinInvertedPlayerIds.clear();
+    completedPlayerJoinIds.clear();
+    initialTeam1Count = 0;
+    initialTeam2Count = 0;
+    teamAssignmentPhase = "initial";
+    const allPlayers = mod.AllPlayers();
+    const currentObservedJoins = new Map<number, ObservedPlayerJoin>();
+    for (const [playerId, observed] of observedPlayerJoins) {
+        if (observed.targetRoundGeneration < currentRoundGeneration) continue;
+        if (observed.targetRoundGeneration > currentRoundGeneration) {
+            currentObservedJoins.set(playerId, observed);
+            continue;
+        }
+        if (!mod.IsPlayerValid(observed.player)) continue;
+        currentObservedJoins.set(playerId, {
+            player: observed.player,
+            observedPhase: "awaiting-game-start",
+            portalTeamId: observed.portalTeamId,
+            targetRoundGeneration: currentRoundGeneration,
+        });
+    }
+
+    for (let i = 0; i < countPlayers(allPlayers); i += 1) {
+        const player = playerValue(allPlayers, i);
+        if (!mod.IsPlayerValid(player)) continue;
+        const playerId = mod.GetObjId(player);
+        currentObservedJoins.set(playerId, {
+            player,
+            observedPhase: "awaiting-game-start",
+            portalTeamId: teamId(mod.GetTeam(player)),
+            targetRoundGeneration: currentRoundGeneration,
+        });
+    }
+    observedPlayerJoins.clear();
+    for (const [playerId, observed] of currentObservedJoins) observedPlayerJoins.set(playerId, observed);
+
+    shuffleInitialHumanPlayers(allPlayers);
+}
+
+function handleTeamAssignmentOnHumanDeploy(player: mod.Player): void {
+    if (teamAssignmentPhase === "awaiting-game-start") return;
+    if (playerAiState(player) !== false) return;
+    const playerId = mod.GetObjId(player);
+    if (teamAssignmentPhase === "initial") {
+        if (!initialTeamAssignedPlayerIds.has(playerId)) assignInitialPlayer(player);
+        if (!initialTeamAssignedPlayerIds.has(playerId)) return;
+        teamAssignmentPhase = "late";
+        completePlayerJoin(player);
+        return;
+    }
+
+    if (completedPlayerJoinIds.has(playerId)) return;
+    const observed = observedPlayerJoins.get(playerId);
+    if (observed === undefined) return;
+    if (observed.targetRoundGeneration !== currentRoundGeneration) return;
+    if (observed.observedPhase !== "late") {
+        assignInitialPlayer(player);
+        if (initialTeamAssignedPlayerIds.has(playerId)) completePlayerJoin(player);
+        return;
+    }
+    if (invertLateJoinPlayer(observed)) completePlayerJoin(player);
 }
 
 function capturepointFlashGlobalVar(): mod.Variable {
@@ -1736,6 +1973,7 @@ function checkConquestAssaultWin(): void {
 
 export function OngoingGlobal(): void {
     if (!state.initialized) initializeConquestState();
+    processOneObservedPlayerJoin();
     maybeRefreshHud();
     maybeBleedTickets();
     maybePlayStatusVO();
@@ -1747,20 +1985,49 @@ export function OngoingGlobal(): void {
 export function OnGameModeStarted(): void {
     initializeConquestState();
     decideRandomNightMode();
+    beginRoundTeamAssignment();
     startConquest();
 }
 
-// Portal event: creates per-player HUD and initializes scoreboard values.
+export function OnGameModeEnding(): void {
+    teamAssignmentPhase = "awaiting-game-start";
+}
+
+// Portal event: assigns a human before creating its HUD and initializes scoreboard values.
 export function OnPlayerJoinGame(eventPlayer: mod.Player): void {
-    initializePlayerState(eventPlayer);
-    if (!isAiSoldier(eventPlayer)) enableAmmoResupplyVFX();
-    createPlayerHud(eventPlayer);
-    updatePlayerScoreboard(eventPlayer);
-    if (state.gameOngoing) updateAllHud();
+    if (!mod.IsPlayerValid(eventPlayer)) return;
+    if (state.endGameStarted) teamAssignmentPhase = "awaiting-game-start";
+    const playerId = mod.GetObjId(eventPlayer);
+    const observedPhase = teamAssignmentPhase;
+    const targetRoundGeneration = observedPhase === "awaiting-game-start" ? currentRoundGeneration + 1 : currentRoundGeneration;
+    observedPlayerJoins.set(playerId, {
+        player: eventPlayer,
+        observedPhase,
+        portalTeamId: teamId(mod.GetTeam(eventPlayer)),
+        targetRoundGeneration,
+    });
+}
+
+// SDK 1.4.1 exposes only eventNumber here; Portal runtime must confirm it equals GetObjId(player).
+export function OnPlayerLeaveGame(eventNumber: number): void {
+    const assignedTeamId = initialAssignedTeamIdByPlayerId.get(eventNumber);
+    if (teamAssignmentPhase === "initial" && assignedTeamId === TEAM_1_ID) {
+        initialTeam1Count = Math.max(0, initialTeam1Count - 1);
+    }
+    if (teamAssignmentPhase === "initial" && assignedTeamId === TEAM_2_ID) {
+        initialTeam2Count = Math.max(0, initialTeam2Count - 1);
+    }
+
+    observedPlayerJoins.delete(eventNumber);
+    completedPlayerJoinIds.delete(eventNumber);
+    lateJoinInvertedPlayerIds.delete(eventNumber);
+    initialTeamAssignedPlayerIds.delete(eventNumber);
+    initialAssignedTeamIdByPlayerId.delete(eventNumber);
 }
 
 // Portal event: resets temporary player state and gives optional NVG equipment.
 export function OnPlayerDeployed(eventPlayer: mod.Player): void {
+    handleTeamAssignmentOnHumanDeploy(eventPlayer);
     const current = playerState(eventPlayer);
     stopOutOfBounds(eventPlayer);
     setPlayerOobVisible(eventPlayer, false);

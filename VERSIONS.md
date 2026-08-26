@@ -25,3 +25,15 @@ This file records cumulative metadata for the reconstructed public Release snaps
 - Original Strings JSON: `tokai-conquest-2.2.2-v12-core-release.Strings.json` — 8,501 bytes — SHA-256 `1127624B09ADB2C71ABFD2E438777B1752276DE7DB4DE559F599B01CC6133C2D`
 - Build ID: `TOKAI CONQUEST 2.2.2 V12 CORE RELEASE`
 - Snapshot paths: `src/tokai-conquest.ts`, `src/tokai-conquest.Strings.json`
+
+## v2.3.0
+
+- Release state: stable (`draft=false`, `prerelease=false`)
+- Published: `2026-08-24T01:01:42Z`
+- Release URL: https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/tag/v2.3.0
+- Manual ZIP: `tokai-conquest-2.3.0-release.zip` — 37,707 bytes — SHA-256 `19C83278C6C796E0AF9C030696BE6D22D900578AD84FC5770459E0300FA31678`
+- Manual ZIP URL: https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/download/v2.3.0/tokai-conquest-2.3.0-release.zip
+- Original TypeScript: `tokai-conquest-2.3.0-team-shuffle-late-join-inversion-release.ts` — 92,275 bytes — SHA-256 `F17EC26577291B815204678C282DC56B034ECFFB209704E2C2B8CFAA0DC0153F`
+- Original Strings JSON: `tokai-conquest-2.3.0-team-shuffle-late-join-inversion-release.Strings.json` — 8,525 bytes — SHA-256 `0522AAE20E4FD74C7BDCDF6FF551EAA7A8A7904B2165B1DC8B41D3A3720064BF`
+- Build ID: `TOKAI CONQUEST 2.3.0 TEAM SHUFFLE LATE JOIN INVERSION RELEASE`
+- Snapshot paths: `src/tokai-conquest.ts`, `src/tokai-conquest.Strings.json`
