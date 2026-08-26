@@ -2,6 +2,14 @@
 
 TOKAI Conquest 2.4.0と2.5.0の手動Release ZIPには、同一内容の7組のMAPファイルが収録されています。各組は、Portalアップロード用の `.spatial.json` とGodot編集用の `.tscn` です。
 
+## 比較表記の読み方 / How to read the comparison
+
+各詳細ページの比較ラベルは **比較に使用したAndy加工用TSCN（SDK 1.4.1収録）** です。比較対象はSDK 1.4.1収録ディレクトリにあるAndy加工用TSCNであり、別に配布されたAndy V12一式ではありません。同一内容のTSCNはSDK 1.4.2にも収録されています。また、SDK収録ディレクトリには対応する `.spatial.json` がありません。
+
+このため、各ページの「基準データからの変更」はTSCNで確認できる静的構造差だけを記載します。実機上の効果や変更意図を示すものではなく、実行時事象を説明するものでもありません。Andy基準との比較と、過去のTOKAI版から現行版への比較は別項目にしています。
+
+On each map page, the baseline is the Andy editing TSCN included with SDK 1.4.1. This is not the separate Andy V12 package; the same TSCN is also included with SDK 1.4.2, and the SDK directories contain no matching spatial JSON. The listed changes are static TSCN structure differences only; they do not claim gameplay effects or intent and do not explain runtime behavior. Historical TOKAI comparisons are listed separately.
+
 | マップ | 内部名 | 版 | 拠点 | 案内 |
 | --- | --- | --- | --- | --- |
 | Abbasid | `MP_Abbasid` | 2.2.3 | A～E（5拠点） | [詳細](abbasid.md) |
