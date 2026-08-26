@@ -1,9 +1,9 @@
 import * as modlib from "modlib";
 
-const TOKAI_CONQUEST_BUILD_ID = "TOKAI CONQUEST 2.3.0 TEAM SHUFFLE LATE JOIN INVERSION RELEASE";
+const TOKAI_CONQUEST_BUILD_ID = "TOKAI CONQUEST 2.4.0 RELEASE";
 const V12_TIMER_UI_ENABLED = true;
 const V12_RANDOM_DAY_NIGHT_ENABLED = true;
-const V12_PERCENTAGE_NIGHT_CHANCE = 25;
+const V12_PERCENTAGE_NIGHT_CHANCE = 15;
 
 // Team IDs used by Portal. Change these only if your experience uses custom team routing.
 const TEAM_1_ID = 1;
@@ -55,8 +55,8 @@ const AMMO_RESUPPLY_INTERACT_ID = 2000;
 const AMMO_RESUPPLY_COOLDOWN_SECONDS = 60;
 const AMMO_RESUPPLY_NOTICE_SECONDS = 2.5;
 const AMMO_DIRECT_REFILL_AMOUNT = 999;
-// Abbasid 1.3 MAP contract: exactly five ammo-station glow VFX objects.
-const AMMO_RESUPPLY_VFX_IDS = [2300, 2301, 2302, 2303, 2304];
+// Cross-map contract: up to six individually addressable ammo-station glow VFX objects.
+const AMMO_RESUPPLY_VFX_IDS = [2300, 2301, 2302, 2303, 2304, 2305];
 const AMMO_MAG_REFILL_SLOTS = [
     mod.InventorySlots.PrimaryWeapon,
     mod.InventorySlots.SecondaryWeapon,
@@ -83,7 +83,6 @@ const HEADSHOT_KILL_BONUS = 10;
 const ASSIST_SCORE = 50;
 const REVIVE_SCORE = 100;
 const OBJECTIVE_SCORE = 200;
-const RECENT_DEATH_UNDEPLOY_GRACE_SECONDS = 0.5;
 
 // HUD colors. The first vector is text/bar color, the second is the background color.
 const TEAM_1_TEXT = () => mod.CreateVector(0, 0.8, 1);
@@ -161,7 +160,7 @@ type PlayerState = {
     outOfBounds: boolean;
     ignoreOOB: boolean;
     invisibleWallTriggered: boolean;
-    lastDeathTime: number;
+    undeployHandled: boolean;
 };
 
 type ConquestState = {
@@ -243,6 +242,9 @@ const ammoResupplyLastUsedByPlayerId = new Map<number, number>();
 const ammoResupplyNoticeTokenByPlayerId = new Map<number, number>();
 const spawnedCaptureSoundObjects: mod.Object[] = [];
 
+// This module-scoped value intentionally survives per-round state resets while the script stays loaded.
+let previousRoundWasNight = false;
+
 type TeamAssignmentPhase = "awaiting-game-start" | "initial" | "late";
 
 type ObservedPlayerJoin = {
@@ -260,7 +262,7 @@ let initialTeam2Count = 0;
 const observedPlayerJoins = new Map<number, ObservedPlayerJoin>();
 const initialTeamAssignedPlayerIds = new Set<number>();
 const initialAssignedTeamIdByPlayerId = new Map<number, number>();
-const lateJoinInvertedPlayerIds = new Set<number>();
+const lateJoinAssignedPlayerIds = new Set<number>();
 const completedPlayerJoinIds = new Set<number>();
 
 function defaultPlayerState(): PlayerState {
@@ -285,7 +287,7 @@ function defaultPlayerState(): PlayerState {
         outOfBounds: false,
         ignoreOOB: false,
         invisibleWallTriggered: false,
-        lastDeathTime: -1,
+        undeployHandled: true,
     };
 }
 
@@ -319,6 +321,16 @@ function playerAiState(player: mod.Player): boolean | undefined {
     if (!mod.IsPlayerValid(player)) return undefined;
     try {
         return mod.GetSoldierState(player, mod.SoldierStateBool.IsAISoldier);
+    } catch (_error) {
+        void _error;
+        return undefined;
+    }
+}
+
+function playerAliveState(player: mod.Player): boolean | undefined {
+    if (!mod.IsPlayerValid(player)) return undefined;
+    try {
+        return mod.GetSoldierState(player, mod.SoldierStateBool.IsAlive);
     } catch (_error) {
         void _error;
         return undefined;
@@ -374,10 +386,47 @@ function assignInitialPlayer(player: mod.Player): void {
     applyPlannedInitialAssignment(player);
 }
 
-function invertLateJoinPlayer(observed: ObservedPlayerJoin): boolean {
+type HumanTeamCounts = {
+    team1: number;
+    team2: number;
+};
+
+function currentHumanTeamCountsExcluding(excludedPlayerId: number): HumanTeamCounts | undefined {
+    const allPlayers = mod.AllPlayers();
+    const countedPlayerIds = new Set<number>();
+    let team1 = 0;
+    let team2 = 0;
+
+    for (let i = 0; i < countPlayers(allPlayers); i += 1) {
+        const player = playerValue(allPlayers, i);
+        if (!mod.IsPlayerValid(player)) continue;
+        const playerId = mod.GetObjId(player);
+        if (playerId === excludedPlayerId || countedPlayerIds.has(playerId)) continue;
+        countedPlayerIds.add(playerId);
+
+        let currentTeamId: number;
+        try {
+            currentTeamId = teamId(mod.GetTeam(player));
+        } catch (_error) {
+            void _error;
+            return undefined;
+        }
+        if (currentTeamId !== TEAM_1_ID && currentTeamId !== TEAM_2_ID) continue;
+
+        const aiState = playerAiState(player);
+        if (aiState === undefined) return undefined;
+        if (aiState) continue;
+        if (currentTeamId === TEAM_1_ID) team1 += 1;
+        if (currentTeamId === TEAM_2_ID) team2 += 1;
+    }
+
+    return { team1, team2 };
+}
+
+function assignLateJoinPlayer(observed: ObservedPlayerJoin): boolean {
     const player = observed.player;
     const playerId = mod.GetObjId(player);
-    if (lateJoinInvertedPlayerIds.has(playerId)) return true;
+    if (lateJoinAssignedPlayerIds.has(playerId)) return true;
     if (!mod.IsPlayerValid(player)) return false;
     if (observed.portalTeamId !== TEAM_1_ID && observed.portalTeamId !== TEAM_2_ID) {
         const currentTeamId = teamId(mod.GetTeam(player));
@@ -386,8 +435,14 @@ function invertLateJoinPlayer(observed: ObservedPlayerJoin): boolean {
     }
     const portalTeamId = observed.portalTeamId;
     if (portalTeamId !== TEAM_1_ID && portalTeamId !== TEAM_2_ID) return false;
-    if (!applyAutomaticTeamAssignment(player, otherTeamId(portalTeamId))) return false;
-    lateJoinInvertedPlayerIds.add(playerId);
+    const currentCounts = currentHumanTeamCountsExcluding(playerId);
+    if (currentCounts === undefined) return false;
+    const difference = Math.abs(currentCounts.team1 - currentCounts.team2);
+    const targetTeamId = difference >= 2
+        ? currentCounts.team1 < currentCounts.team2 ? TEAM_1_ID : TEAM_2_ID
+        : otherTeamId(portalTeamId);
+    if (!applyAutomaticTeamAssignment(player, targetTeamId)) return false;
+    lateJoinAssignedPlayerIds.add(playerId);
     return true;
 }
 
@@ -416,7 +471,7 @@ function processObservedPlayerJoin(playerId: number): void {
         } else if (observed.observedPhase !== "late") {
             assignInitialPlayer(player);
         } else if (observed.observedPhase === "late") {
-            if (!invertLateJoinPlayer(observed)) return;
+            if (!assignLateJoinPlayer(observed)) return;
         }
     }
 
@@ -469,7 +524,7 @@ function beginRoundTeamAssignment(): void {
     currentRoundGeneration += 1;
     initialTeamAssignedPlayerIds.clear();
     initialAssignedTeamIdByPlayerId.clear();
-    lateJoinInvertedPlayerIds.clear();
+    lateJoinAssignedPlayerIds.clear();
     completedPlayerJoinIds.clear();
     initialTeam1Count = 0;
     initialTeam2Count = 0;
@@ -529,7 +584,7 @@ function handleTeamAssignmentOnHumanDeploy(player: mod.Player): void {
         if (initialTeamAssignedPlayerIds.has(playerId)) completePlayerJoin(player);
         return;
     }
-    if (invertLateJoinPlayer(observed)) completePlayerJoin(player);
+    if (assignLateJoinPlayer(observed)) completePlayerJoin(player);
 }
 
 function capturepointFlashGlobalVar(): mod.Variable {
@@ -941,7 +996,7 @@ function initializePlayerState(player: mod.Player): void {
     current.outOfBounds = false;
     current.ignoreOOB = false;
     current.invisibleWallTriggered = false;
-    current.lastDeathTime = -1;
+    current.undeployHandled = true;
 }
 
 function setupScoreboard(): void {
@@ -1354,8 +1409,11 @@ function initializeConquestState(): void {
 
 function decideRandomNightMode(): void {
     state.nightMode = false;
-    if (!state.randomDayNightEnabled) return;
-    if (mod.RandomReal(0, 100) < state.percentageNightChance) state.nightMode = true;
+    if (state.randomDayNightEnabled && !previousRoundWasNight) {
+        state.nightMode = mod.RandomReal(0, 100) < state.percentageNightChance;
+    }
+    previousRoundWasNight = state.nightMode;
+    if (state.nightMode) state.givePlayersNVG = true;
 }
 
 function setupConquestFoundation(): void {
@@ -2020,7 +2078,7 @@ export function OnPlayerLeaveGame(eventNumber: number): void {
 
     observedPlayerJoins.delete(eventNumber);
     completedPlayerJoinIds.delete(eventNumber);
-    lateJoinInvertedPlayerIds.delete(eventNumber);
+    lateJoinAssignedPlayerIds.delete(eventNumber);
     initialTeamAssignedPlayerIds.delete(eventNumber);
     initialAssignedTeamIdByPlayerId.delete(eventNumber);
 }
@@ -2029,6 +2087,7 @@ export function OnPlayerLeaveGame(eventNumber: number): void {
 export function OnPlayerDeployed(eventPlayer: mod.Player): void {
     handleTeamAssignmentOnHumanDeploy(eventPlayer);
     const current = playerState(eventPlayer);
+    current.undeployHandled = false;
     stopOutOfBounds(eventPlayer);
     setPlayerOobVisible(eventPlayer, false);
     untrackPlayerFromCurrentPoint(eventPlayer);
@@ -2044,8 +2103,9 @@ export function OnPlayerDeployed(eventPlayer: mod.Player): void {
     setPlayerBuildVersionVisible(eventPlayer);
 }
 
-// Portal event: applies death ticket bleed and updates death stats.
+// Portal event: clears temporary state; ticket and death settlement occurs on undeploy.
 export function OnPlayerDied(eventPlayer: mod.Player, eventOtherPlayer: mod.Player, _eventDeathType: mod.DeathType, _eventWeaponUnlock: mod.WeaponUnlock): void {
+    void eventOtherPlayer;
     void _eventDeathType;
     void _eventWeaponUnlock;
     const current = playerState(eventPlayer);
@@ -2055,18 +2115,11 @@ export function OnPlayerDied(eventPlayer: mod.Player, eventOtherPlayer: mod.Play
     current.onPoint = false;
     current.currentCapturePointId = -1;
     current.captureTick = 0;
-    current.lastDeathTime = mod.GetMatchTimeElapsed();
     resetPlayerCaptureHudCache(eventPlayer);
     setPlayerObjectiveVisible(eventPlayer, false);
-    if (!state.gameOngoing) return;
-    addPlayerScore(eventPlayer, 0, PlayerVar.Deaths);
-    addTeamScore(mod.GetTeam(eventPlayer), -1);
-    void eventOtherPlayer;
-    updateAllHud();
-    checkEndGame();
 }
 
-// Portal event: handles undeploys that are not already counted by OnPlayerDied.
+// Portal event: settles one completed deployment lifecycle exactly once.
 export function OnPlayerUndeploy(eventPlayer: mod.Player): void {
     const current = playerState(eventPlayer);
     stopOutOfBounds(eventPlayer);
@@ -2077,13 +2130,11 @@ export function OnPlayerUndeploy(eventPlayer: mod.Player): void {
     current.captureTick = 0;
     resetPlayerCaptureHudCache(eventPlayer);
     setPlayerObjectiveVisible(eventPlayer, false);
-    if (!state.gameOngoing) return;
-    if (current.ignoreOOB) return;
 
-    const elapsed = mod.GetMatchTimeElapsed();
-    if (current.lastDeathTime >= 0 && elapsed - current.lastDeathTime <= RECENT_DEATH_UNDEPLOY_GRACE_SECONDS) return;
+    if (current.undeployHandled) return;
+    current.undeployHandled = true;
+    if (!state.gameOngoing || current.ignoreOOB) return;
 
-    current.lastDeathTime = elapsed;
     addPlayerScore(eventPlayer, 0, PlayerVar.Deaths);
     addTeamScore(mod.GetTeam(eventPlayer), -1);
     updateAllHud();
