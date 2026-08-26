@@ -13,3 +13,15 @@ This file records cumulative metadata for the reconstructed public Release snaps
 - Original Strings JSON: `tokai-conquest-2.0-abbasid-commander-release.Strings.json` — 10,542 bytes — SHA-256 `ED81ABD242EB6EBABF86D78EB05BAB0FCC9971D516321419AD14DCB1F652B55A`
 - Build ID: `TOKAI CONQUEST 2.0 ABBASID COMMANDER RELEASE`
 - Snapshot paths: `src/tokai-conquest.ts`, `src/tokai-conquest.Strings.json`
+
+## v2.2.2
+
+- Release state: stable (`draft=false`, `prerelease=false`)
+- Published: `2026-08-24T01:01:36Z`
+- Release URL: https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/tag/v2.2.2
+- Manual ZIP: `tokai-conquest-2.2.2-release.zip` — 35,800 bytes — SHA-256 `65F68BBB046F0892C0CB74E138505B823F7055B30507406B6F002F36715609DB`
+- Manual ZIP URL: https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/download/v2.2.2/tokai-conquest-2.2.2-release.zip
+- Original TypeScript: `tokai-conquest-2.2.2-v12-core-release.ts` — 83,290 bytes — SHA-256 `5526F5D83D5A77D001659E85A76918EBED762A7DA39DB6516192BBC167D068BB`
+- Original Strings JSON: `tokai-conquest-2.2.2-v12-core-release.Strings.json` — 8,501 bytes — SHA-256 `1127624B09ADB2C71ABFD2E438777B1752276DE7DB4DE559F599B01CC6133C2D`
+- Build ID: `TOKAI CONQUEST 2.2.2 V12 CORE RELEASE`
+- Snapshot paths: `src/tokai-conquest.ts`, `src/tokai-conquest.Strings.json`
