@@ -44,6 +44,8 @@ TOKAI Conquest V6は、Battlefield Portal向けのカスタムコンクエスト
 - Metro 1.0
 - Plaza 1.0
 
+内部名、対応ファイル名、拠点構成、検証状態は[マップ別ガイド](maps/README.md)で確認できます。
+
 ## 導入
 
 1. 使用するマップの `.spatial.json` を対応するMAPへアップロードします。

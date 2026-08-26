@@ -46,6 +46,8 @@ TOKAI Conquest V6は、Battlefield Portal向けのカスタムコンクエスト
 
 各マップには、Portalアップロード用の `.spatial.json` とGodot編集用の `.tscn` が1件ずつあります。
 
+内部名、対応ファイル名、拠点構成、検証状態は[マップ別ガイド](maps/README.md)で確認できます。
+
 ## 導入手順
 
 1. 使用するマップの `.spatial.json` を対応するMAPへアップロードします。
