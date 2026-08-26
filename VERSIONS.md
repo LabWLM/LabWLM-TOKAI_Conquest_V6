@@ -49,3 +49,15 @@ This file records cumulative metadata for the reconstructed public Release snaps
 - Original Strings JSON: `tokai-conquest-2.4.0-release.Strings.json` — 8,492 bytes — SHA-256 `633407ECF62896697F485A46E7C26961351E569A299EDFF7029259FD79985AD8`
 - Build ID: `TOKAI CONQUEST 2.4.0 RELEASE`
 - Snapshot paths: `src/tokai-conquest.ts`, `src/tokai-conquest.Strings.json`
+
+## v2.5.0
+
+- Release state: prerelease (`draft=false`, `prerelease=true`, non-Latest)
+- Published: `2026-08-24T01:02:02Z`
+- Release URL: https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/tag/v2.5.0
+- Manual ZIP: `tokai-conquest-2.5.0-release.zip` — 162,198 bytes — SHA-256 `9425BADDDEC6AB624692E7E8D10FD93A8D26E33431290098F8803A9BCAC0A303`
+- Manual ZIP URL: https://github.com/LabWLM/LabWLM-TOKAI_Conquest_V6/releases/download/v2.5.0/tokai-conquest-2.5.0-release.zip
+- Original TypeScript: `tokai-conquest-2.5.0-native-hud-release.ts` — 78,240 bytes — SHA-256 `C0C973279A8EE0B003B813547CF036DDEFD99C6DBF4AC8E6C82D3313A6757EA1`
+- Original Strings JSON: `tokai-conquest-2.5.0-native-hud-release.Strings.json` — 8,492 bytes — SHA-256 `25A612CCBEA2E145C80F255AB868F0D17490575A59C8310A25E224A52A3F6875`
+- Build ID: `TOKAI CONQUEST 2.5.0 RELEASE`
+- Snapshot paths: `src/tokai-conquest.ts`, `src/tokai-conquest.Strings.json`
